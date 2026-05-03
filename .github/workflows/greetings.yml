@@ -15,4 +15,4 @@ jobs:
             🙏 Thank you @${{ github.actor }} for your contribution!
             
             Commit: ${{ github.sha }}
-            Message: ${{ github.event.head_commit.message }}
+            Message: HEYYYYYYYY!!! ${{ github.event.head_commit.message }}

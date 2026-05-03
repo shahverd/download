@@ -3,7 +3,7 @@ name: Auto Download and Commit
 on: 
   push:
     branches:
-    [main, master]
+      [main, master]
   workflow_dispatch:
     inputs:
       file_url:

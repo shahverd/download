@@ -1,16 +1,18 @@
-name: Greetings
+name: Thank Committer on Push
 
-on: [pull_request_target, issues]
+on:
+  push:
+    branches: [ main, master ]
 
 jobs:
-  greeting:
+  thank:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
     steps:
-    - uses: actions/first-interaction@v1
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        issue-message: "Message that will be displayed on users' first issue"
-        pr-message: "Message that will be displayed on users' first pull request"
+      - name: Comment on commit
+        uses: peter-evans/commit-comment@v3
+        with:
+          body: |
+            🙏 Thank you @${{ github.actor }} for your contribution!
+            
+            Commit: ${{ github.sha }}
+            Message: ${{ github.event.head_commit.message }}

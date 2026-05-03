@@ -4,15 +4,6 @@ on:
   push:
     branches:
       [main, master]
-  workflow_dispatch:
-    inputs:
-      file_url:
-        description: 'File URL'
-        required: true
-      target_branch:
-        description: 'Target branch'
-        required: true
-        default: 'main'
 
 jobs:
   download-and-commit:
@@ -21,12 +12,7 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout target branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.client_payload.target_branch || github.event.inputs.target_branch }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
+    
       - name: Download file
         run: |
           FILE_URL="${{ github.event.client_payload.file_url || github.event.inputs.file_url }}"

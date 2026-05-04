@@ -12,53 +12,58 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout code
+      - name: Checkout master branch to read README
         uses: actions/checkout@v4
         with:
-          ref: downl  # Checkout the downl branch directly
+          ref: master
           
-      - name: Extract URL from README and download file
+      - name: Extract URL from first line of README
+        id: get-url
         run: |
-          # Check if README file exists
-          if [ -f "README.md" ]; then
-            # Extract URL from README (looks for http:// or https:// patterns)
-            # This extracts the first URL found in the README
-            URL=$(grep -oP 'https?://[^\s]+' README.md | head -1)
-            
-            if [ -n "$URL" ]; then
-              echo "Found URL: $URL"
-              # Download the file using the extracted URL
-              # Extract filename from URL or use a default name
-              FILENAME=$(basename "$URL" | cut -d '?' -f1)
-              if [ -z "$FILENAME" ]; then
-                FILENAME="downloaded_file"
-              fi
-              
-              # Download the file
-              curl -L -o "$FILENAME" "$URL"
-              echo "Downloaded file: $FILENAME"
-            else
-              echo "No URL found in README.md"
-              exit 1
-            fi
-          else
-            echo "README.md not found"
+          if [ ! -f README.md ]; then
+            echo "Error: README.md not found"
             exit 1
           fi
+          URL=$(head -n 1 README.md | tr -d '\n\r')
+          if [ -z "$URL" ]; then
+            echo "Error: First line of README.md is empty"
+            exit 1
+          fi
+          echo "url=$URL" >> $GITHUB_OUTPUT
           
-      - name: Commit and push downloaded file
+      - name: Checkout downl branch
+        uses: actions/checkout@v4
+        with:
+          ref: downl
+          
+      - name: Download file from URL
+        run: |
+          URL="${{ steps.get-url.outputs.url }}"
+          echo "Downloading from: $URL"
+          
+          # Download the file with original name or as 'downloaded_file'
+          # Try to preserve original filename
+          curl -L -O -J "$URL" || curl -L -o "downloaded_file" "$URL"
+          
+          # If curl didn't preserve the filename, rename the output
+          if [ ! -f downloaded_file ] && [ $(ls -1 | wc -l) -eq 1 ]; then
+            # If there's exactly one file (excluding .git), rename it
+            DOWNLOADED=$(ls -1 | grep -v ".git" | head -n 1)
+            if [ -n "$DOWNLOADED" ]; then
+              mv "$DOWNLOADED" "downloaded_file"
+            fi
+          fi
+          
+          # Ensure we have a file
+          if [ ! -f downloaded_file ] && [ ! -f downloaded_file.* ]; then
+            echo "Warning: Could not determine filename, creating downloaded_file"
+            touch downloaded_file
+          fi
+          
+      - name: Commit with URL as message
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Add all new/changed files
           git add .
-          
-          # Get the URL from README again for the commit message
-          URL=$(grep -oP 'https?://[^\s]+' README.md | head -1)
-          
-          # Commit with the URL as the message
-          git commit -m "Downloaded from: $URL" || echo "No changes to commit"
-          
-          # Push to downl branch
+          git commit -m "Download from: ${{ steps.get-url.outputs.url }}" || echo "No changes to commit"
           git push origin downl

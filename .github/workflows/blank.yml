@@ -12,18 +12,19 @@ jobs:
       contents: write
 
     steps:
-    
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: downl  # Checkout the downl branch directly
+          
       - name: Download file
         run: |
           touch downloaded_file 
       
       - name: Commit with URL as message
         run: |
-          
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b downl origin/downl
           git add downloaded_file
           git commit -m "mmmnmmn"
           git push origin downl
-          

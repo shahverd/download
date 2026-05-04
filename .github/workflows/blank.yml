@@ -3,7 +3,7 @@ name: Auto Download and Commit
 on: 
   push:
     branches:
-      [main, master]
+      [master]
 
 jobs:
   download-and-commit:
@@ -15,19 +15,15 @@ jobs:
     
       - name: Download file
         run: |
-          curl -L -o downloaded_file "https://www.digikala.com/"
+          curl -o downloaded_file "https://www.google.com/"
       
       - name: Commit with URL as message
         run: |
           
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b downl origin/downl
           git add downloaded_file
+          git commit -m "mmmnmmn"
+          git push origin downl
           
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            # Using the URL as the commit message
-            git commit -m "mmmnmmn"
-            git push origin ${{ github.event.client_payload.target_branch || github.event.inputs.target_branch }}
-          fi

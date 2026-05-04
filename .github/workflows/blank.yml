@@ -15,16 +15,43 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: downl  # Checkout the downl branch directly
+          ref: downl
+          fetch-depth: 2  # Need to fetch previous commit to get full commit message
+          
+      - name: Get URL from commit description
+        id: get-url
+        run: |
+          # Get the last commit message (full message including body)
+          COMMIT_MSG=$(git log -1 --format=%B)
+          
+          # Extract URL from the commit body (everything after the first line)
+          # This assumes the URL is on the second line or in the body
+          URL=$(echo "$COMMIT_MSG" | sed -n '2,$p' | grep -o 'https\?://[^ ]*' | head -1)
+          
+          # If no URL found in body, try to find in subject as fallback
+          if [ -z "$URL" ]; then
+            echo "No URL found in commit description/body"
+            exit 1
+          fi
+          
+          echo "Found URL: $URL"
+          echo "url=$URL" >> $GITHUB_OUTPUT
           
       - name: Download file
         run: |
-          touch downloaded_file 
-      
+          # Download using the URL from commit description
+          curl -L -o downloaded_file "${{ steps.get-url.outputs.url }}"
+          
+          # Verify file was downloaded (not empty)
+          if [ ! -s downloaded_file ]; then
+            echo "Error: Downloaded file is empty"
+            exit 1
+          fi
+          
       - name: Commit with URL as message
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add downloaded_file
-          git commit -m "mmmnmmn"
+          git commit -m "Auto-download: ${{ steps.get-url.outputs.url }}"
           git push origin downl

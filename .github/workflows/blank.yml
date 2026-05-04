@@ -15,7 +15,7 @@ jobs:
     
       - name: Download file
         run: |
-          curl -o downloaded_file "https://www.google.com/"
+          touch downloaded_file 
       
       - name: Commit with URL as message
         run: |

@@ -15,43 +15,50 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: downl
-          fetch-depth: 2  # Need to fetch previous commit to get full commit message
+          ref: downl  # Checkout the downl branch directly
           
-      - name: Get URL from commit description
-        id: get-url
+      - name: Extract URL from README and download file
         run: |
-          # Get the last commit message (full message including body)
-          COMMIT_MSG=$(git log -1 --format=%B)
-          
-          # Extract URL from the commit body (everything after the first line)
-          # This assumes the URL is on the second line or in the body
-          URL=$(echo "$COMMIT_MSG" | sed -n '2,$p' | grep -o 'https\?://[^ ]*' | head -1)
-          
-          # If no URL found in body, try to find in subject as fallback
-          if [ -z "$URL" ]; then
-            echo "No URL found in commit description/body"
+          # Check if README file exists
+          if [ -f "README.md" ]; then
+            # Extract URL from README (looks for http:// or https:// patterns)
+            # This extracts the first URL found in the README
+            URL=$(grep -oP 'https?://[^\s]+' README.md | head -1)
+            
+            if [ -n "$URL" ]; then
+              echo "Found URL: $URL"
+              # Download the file using the extracted URL
+              # Extract filename from URL or use a default name
+              FILENAME=$(basename "$URL" | cut -d '?' -f1)
+              if [ -z "$FILENAME" ]; then
+                FILENAME="downloaded_file"
+              fi
+              
+              # Download the file
+              curl -L -o "$FILENAME" "$URL"
+              echo "Downloaded file: $FILENAME"
+            else
+              echo "No URL found in README.md"
+              exit 1
+            fi
+          else
+            echo "README.md not found"
             exit 1
           fi
           
-          echo "Found URL: $URL"
-          echo "url=$URL" >> $GITHUB_OUTPUT
-          
-      - name: Download file
-        run: |
-          # Download using the URL from commit description
-          curl -L -o downloaded_file "${{ steps.get-url.outputs.url }}"
-          
-          # Verify file was downloaded (not empty)
-          if [ ! -s downloaded_file ]; then
-            echo "Error: Downloaded file is empty"
-            exit 1
-          fi
-          
-      - name: Commit with URL as message
+      - name: Commit and push downloaded file
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add downloaded_file
-          git commit -m "Auto-download: ${{ steps.get-url.outputs.url }}"
+          
+          # Add all new/changed files
+          git add .
+          
+          # Get the URL from README again for the commit message
+          URL=$(grep -oP 'https?://[^\s]+' README.md | head -1)
+          
+          # Commit with the URL as the message
+          git commit -m "Downloaded from: $URL" || echo "No changes to commit"
+          
+          # Push to downl branch
           git push origin downl

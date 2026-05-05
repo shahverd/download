@@ -1,1 +1,1 @@
-https://github.com/hiddify/hiddify-app/releases/download/v4.1.1/Hiddify-Android-universal.apk
+https://termux.net/debs/stable/arm/p/python-cryptography/python-cryptography_47.0.0_arm.deb
